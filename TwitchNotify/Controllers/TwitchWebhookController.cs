@@ -7,12 +7,10 @@ namespace TwitchNotify.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TwitchWebhookController : ControllerBase
+public class TwitchWebhookController(ILogger<TwitchWebhookController> logger, IConfiguration configuration) : ControllerBase
 {
-    // TODO : Get the secret from the environment variables
-    private const string SECRET = "";
+    private string SECRET = configuration["SecretWebhook"]!;
     private const string HMAC_PREFIX = "sha256=";
-
 
     [HttpPost]
     public IActionResult HandleEvent([FromBody] dynamic payload)
@@ -20,19 +18,20 @@ public class TwitchWebhookController : ControllerBase
         // Verify if request is from Twitch
         if (!VerifyRequestFromTwitch(Request, payload))
         {
-            return Unauthorized();
+            return Unauthorized("Who the fuck are you");
         }
 
         // Twitch sends a verification request when the subscription is created
         if (Request.Headers.ContainsKey("Twitch-Eventsub-Message-Type") &&
             Request.Headers["Twitch-Eventsub-Message-Type"] == "webhook_callback_verification")
         {
+            logger.LogInformation("Verification request received");
             // Return the Challange
             return Ok(payload.GetProperty("challenge").GetString());
         }
 
         // Process the EventSub notification (stream.online or stream.offline)
-        Console.WriteLine($"Received event: {payload}");
+        logger.LogInformation($"Received event: {payload}");
 
         return Ok();
     }
@@ -51,11 +50,11 @@ public class TwitchWebhookController : ControllerBase
         if (twitchHmacMessage != hmac)
         {
             // HMAC message is not valid
-            Console.WriteLine("Message is not from twitch");
+            logger.LogWarning("Invalid HMAC message received");
             return false;
         }
 
-        Console.WriteLine("Message is verified");
+        logger.LogInformation("Message is verified");
         return true;
     }
 
@@ -65,6 +64,4 @@ public class TwitchWebhookController : ControllerBase
         byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(message));
         return BitConverter.ToString(hash).Replace("-", "").ToLower();
     }
-
-
 }
