@@ -9,7 +9,7 @@ public class TwitchWebhookController(ILogger<TwitchWebhookController> logger, Tw
 {
 
     [HttpPost]
-    public async Task<IActionResult> HandleEventAsync([FromBody] dynamic payload)
+    public IActionResult HandleEvent([FromBody] dynamic payload)
     {
         // Verify if request is from Twitch
         if (!twitchWebhookService.VerifyRequestFromTwitch(Request, payload))
@@ -26,7 +26,7 @@ public class TwitchWebhookController(ILogger<TwitchWebhookController> logger, Tw
             return Ok(payload.GetProperty("challenge").GetString());
         }
 
-        await twitchWebhookService.HandleIncommingEvents(Request);
+        twitchWebhookService.HandleIncommingEvents(Request);
 
         return Ok();
     }

@@ -10,7 +10,7 @@ public class TwitchWebhookService(IConfiguration configuration, ILogger<TwitchWe
     private const string HMAC_PREFIX = "sha256=";
     private string messageId = "";
 
-    public async Task HandleIncommingEvents(HttpRequest request)
+    public void HandleIncommingEvents(HttpRequest request)
     {
         // Process the EventSub notification (stream.online)
         if (request.Headers.ContainsKey("Twitch-Eventsub-Subscription-Type") &&
@@ -23,7 +23,7 @@ public class TwitchWebhookService(IConfiguration configuration, ILogger<TwitchWe
             if (messageId != incommingMessageId)
             {
                 messageId = incommingMessageId;
-                await discordWebhookSenderService.SendMessageAsync();
+                discordWebhookSenderService.SendMessageAsync();
 
             }
         }
