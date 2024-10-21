@@ -26,7 +26,7 @@ public class TwitchWebhookController(ILogger<TwitchWebhookController> logger, Tw
             return Ok(payload.GetProperty("challenge").GetString());
         }
 
-        twitchWebhookService.HandleIncommingEvents(Request);
+        twitchWebhookService.HandleIncommingEvents(Request, payload);
 
         return Ok();
     }

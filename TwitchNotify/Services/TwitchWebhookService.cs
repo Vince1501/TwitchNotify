@@ -8,25 +8,52 @@ public class TwitchWebhookService(IConfiguration configuration, ILogger<TwitchWe
 {
     private readonly string SECRET = configuration["SecretWebhook"]!;
     private const string HMAC_PREFIX = "sha256=";
+    const string SubscriptionTypeHeader = "Twitch-Eventsub-Subscription-Type";
+    const string MessageIdHeader = "Twitch-Eventsub-Message-Id";
     private string messageId = "";
+    private string streamTitle = "";
 
-    public void HandleIncommingEvents(HttpRequest request)
+    public async Task HandleIncommingEvents(HttpRequest request, dynamic payload)
     {
-        // Process the EventSub notification (stream.online)
-        if (request.Headers.ContainsKey("Twitch-Eventsub-Subscription-Type") &&
-            request.Headers["Twitch-Eventsub-Subscription-Type"] == "stream.online")
+        // Get the subscription type from the request headers
+        if (request.Headers.TryGetValue(SubscriptionTypeHeader, out StringValues value))
         {
+            string subscriptionType = value!;
 
-            // Check if the message id is the same as the previous one to prevent duplicate messages
-            string incommingMessageId = request.Headers["Twitch-Eventsub-Message-Id"]!;
-
-            if (messageId != incommingMessageId)
+            switch (subscriptionType)
             {
-                messageId = incommingMessageId;
-                discordWebhookSenderService.SendMessageAsync();
+                case "stream.online":
+                    await HandleStreamOnlineEvent(request);
+                    break;
 
+                case "channel.update":
+                    HandleChannelUpdateEvent(payload);
+                    break;
+
+                default:
+                    // Handle other event types if needed
+                    break;
             }
         }
+    }
+
+    private async Task HandleStreamOnlineEvent(HttpRequest request)
+    {
+        // Check if the message id is different from the previous one to avoid duplicate messages
+        string incomingMessageId = request.Headers[MessageIdHeader]!;
+
+        if (messageId != incomingMessageId)
+        {
+            messageId = incomingMessageId;
+            await discordWebhookSenderService.SendMessageAsync(streamTitle); 
+        }
+    }
+
+    private void HandleChannelUpdateEvent(dynamic payload)
+    {
+        // Update the stream title from the channel.update event
+        streamTitle = payload.GetProperty("event").GetProperty("title").GetString();
+        logger.LogInformation($"Stream title updated: {streamTitle} at: {DateTime.UtcNow}");
     }
 
     public bool VerifyRequestFromTwitch(HttpRequest request, dynamic payload)
