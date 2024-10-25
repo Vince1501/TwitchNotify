@@ -48,3 +48,20 @@ For more information on handling Twitch webhooks, refer to the [Twitch API docum
 
 Once the application is running in a Docker container, you can subscribe to the [channel.update](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelupdate) and [stream.online](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#streamonline) events by sending a POST request to the Twitch API.
 
+```json
+{
+    "type": "stream.online",
+    "version": "1",
+    "condition": {
+        "broadcaster_user_id": "123456"
+    },
+    "transport": {
+        "method": "webhook",
+        "callback": "https://{your.domain}/api/twitchwebhook",
+        "secret": "secret"
+    }
+}
+```
+The example above illustrates a POST request body for the `stream.online` event.
+
+Ensure that the same secret used in the POST request matches the `SecretWebhook` defined in `appsettings.json` or the corresponding environment variable.
